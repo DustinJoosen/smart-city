@@ -42,6 +42,49 @@ class CameraDisplay:
         # Load the facial recognition model.
         self.face_recognition_model = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
+    def capture_and_display_n_secs(self, n):
+        start_time = time.time()
+
+        while True:
+            self.capture_and_display()
+            self.apply_facial_recognition()
+            self.send_buffer_to_api()
+        
+            if time.time() - start_time >= n and n != -1:
+                print(f"Done with displaying {n} seconds :)")
+                break
+
+        self.cleanup()
+
+
+    def capture_and_display(self):
+        # Capture an image using libcamera-still
+        subprocess.run(
+            [
+                'libcamera-still',
+                '--width', str(self.DISPLAY_WIDTH),
+                '--height', str(self.DISPLAY_HEIGHT),
+                '--output', '/tmp/image.jpg',
+                '--timeout', '1'  # Capture a frame as quickly as possible
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        # Open the captured image
+        image = Image.open('/tmp/image.jpg')
+
+        # Convert the image to RGB format
+        image = image.convert('RGB')
+
+        # Resize the image to match the ILI9341 display
+        image = image.resize((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
+
+        # Display the image on the ILI9341 display
+        self.display.image(image)
+
+
     def apply_facial_recognition(self):
         # Load the image.
         frame = cv2.imread('/tmp/image.jpg')
@@ -78,31 +121,24 @@ class CameraDisplay:
             print(f"Failed to send frame: {response.status_code}")
 
 
-    def capture_and_display(self):
-        # Capture an image using libcamera-still
-        subprocess.run(
-            [
-                'libcamera-still',
-                '--width', str(self.DISPLAY_WIDTH),
-                '--height', str(self.DISPLAY_HEIGHT),
-                '--output', '/tmp/image.jpg',
-                '--timeout', '1'  # Capture a frame as quickly as possible
-            ],
-            check=True
-        )
-
-        # Open the captured image
-        image = Image.open('/tmp/image.jpg')
-
-        # Convert the image to RGB format
-        image = image.convert('RGB')
-
-        # Resize the image to match the ILI9341 display
-        image = image.resize((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
-
-        # Display the image on the ILI9341 display
-        self.display.image(image)
-
-
     def cleanup(self):
         self.display.fill(0)
+        
+# Example usage.        
+if __name__ == "__main__":    
+    # Initialize the display.
+    camera_display = CameraDisplay()
+
+    # Capture an image and display it on the screen.
+    camera_display.capture_and_display()
+    
+    # Apply facial recognition to the last image.
+    camera_display.apply_facial_recognition()
+    
+    # Send the last image to the API/frontend.
+    camera_display.send_buffer_to_api()
+    
+    # Wait for the user to enter, and then clear the screen.
+    input("Press enter to exit")
+    camera_display.cleanup()
+
