@@ -67,7 +67,9 @@ class CameraDisplay:
                 '--output', '/tmp/image.jpg',
                 '--timeout', '1'  # Capture a frame as quickly as possible
             ],
-            check=True
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
 
         # Open the captured image
