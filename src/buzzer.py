@@ -1,6 +1,10 @@
 import RPi.GPIO as GPIO
+from notification import Notification
 import time
 
+notif = Notification()
+
+# Adding notifications (the current time will be logged automatically)
 
 class Buzzer:
     # Pin configuration.
@@ -20,6 +24,10 @@ class Buzzer:
         GPIO.output(self.BUZZER_PIN, GPIO.LOW)
 
     def buzz_in_ring_pattern(self):
+        notif.add_notification()
+        print('buzzz')
+
+        # Send a GET request to the add_notification 
         self.buzz(0.3)
         time.sleep(0.2)
         self.buzz(0.6)

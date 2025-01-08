@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Camera Feed</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #444;
+        }
+
+        #video-container {
+            width: 640px;
+            margin: 20px auto;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        #notifications, #notification-stats {
+            width: 640px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f4f4f4;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        li strong {
+            color: #222;
+        }
+
+        li small {
+            color: #777;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            width: 30%;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border: 1px solid #b3d4fc;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        #graph-container {
+            width: 640px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        #show-all-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #show-all-button:hover {
+            background-color: #0056b3;
+        }
+
+        #prediction-stats {
+    width: 640px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#prediction-stats .stat {
+    font-size: 1.2em;
+    padding: 10px;
+    background-color: #e7f3fe;
+    border: 1px solid #b3d4fc;
+    border-radius: 5px;
+}
+
+    </style>
+</head>
+<body>
+    <h1>📸 Live Camera Feed</h1>
+
+    <div id="video-container">
+        <img src="/video_feed" alt="Live Camera Feed">
+    </div>
+
+    <div id="notifications">
+        <h2>🔔 Notifications</h2>
+
+        <!-- Recent Notifications (Default View) -->
+        <ul id="recent-notifications">
+            {% if recent_notifications %}
+                {% for notification in recent_notifications %}
+                    <li>
+                        <strong>{{ notification[0] }}</strong><br>
+                        <small>{{ notification[1] }}</small>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li>No notifications yet.</li>
+            {% endif %}
+        </ul>
+
+        <!-- All Notifications (Hidden by Default) -->
+        <ul id="all-notifications" style="display: none;">
+            {% if all_notifications %}
+                {% for notification in all_notifications %}
+                    <li>
+                        <strong>{{ notification[0] }}</strong><br>
+                        <small>{{ notification[1] }}</small>
+                    </li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+
+        <!-- Show All Button -->
+        <button id="show-all-button" onclick="toggleNotifications()">Show All Notifications</button>
+    </div>
+
+    <div id="notification-stats">
+        <h2>📊 Notification Statistics</h2>
+        <div class="stats-container">
+            <div class="stat">
+                <strong>{{ mean }}</strong>
+                Mean Hour of Notifications
+            </div>
+            <div class="stat">
+                <strong>{{ median }}</strong>
+                Median Hour of Notifications
+            </div>
+            <div class="stat">
+                <strong>{{ mode }}</strong>
+                Mode Hour of Notifications
+            </div>
+        </div>
+    </div>
+
+    <div id="graph-container">
+        <h2>📈 Notifications per Hour</h2>
+        <img src="data:image/png;base64,{{ graph_img_base64 }}" alt="Notifications per Hour">
+    </div>
+
+    <div id="prediction-stats">
+        <h2>📈 Prediction for Today's Notifications</h2>
+        <div class="stat">
+            <strong>{{ prediction }}</strong>
+            Predicted Notifications for Today
+        </div>
+    </div>
+
+    <script>
+        function toggleNotifications() {
+            const recentList = document.getElementById('recent-notifications');
+            const allList = document.getElementById('all-notifications');
+            const button = document.getElementById('show-all-button');
+
+            if (allList.style.display === 'none') {
+                allList.style.display = 'block';
+                recentList.style.display = 'none';
+                button.textContent = 'Show Recent Notifications';
+            } else {
+                allList.style.display = 'none';
+                recentList.style.display = 'block';
+                button.textContent = 'Show All Notifications';
+            }
+        }
+    </script>
+</body>
+</html>
